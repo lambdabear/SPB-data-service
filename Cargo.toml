@@ -1,0 +1,9 @@
+[package]
+name = "spb-serial-data-receiver"
+version = "0.1.0"
+authors = ["ZhangYi <zhangyi@goldensecure.com>"]
+edition = "2018"
+
+[dependencies]
+serialport = "3.2"
+clap = "2.31"
