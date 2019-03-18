@@ -1,5 +1,7 @@
 extern crate clap;
 
+use std::io::{self, Write};
+
 use clap::{App, AppSettings, Arg};
 
 fn main() {
@@ -23,5 +25,9 @@ fn main() {
     let port_name = matches.value_of("port").unwrap();
     let baud_rate = matches.value_of("baud").unwrap();
 
-    spb_serial_data_receiver::receive_data(port_name, baud_rate);
+    fn op(data: &[u8]) -> () {
+        io::stdout().write_all(data).unwrap();
+    }
+
+    spb_serial_data_receiver::receive_data(port_name, baud_rate, op);
 }

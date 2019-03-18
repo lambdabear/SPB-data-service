@@ -5,5 +5,7 @@ authors = ["ZhangYi <zhangyi@goldensecure.com>"]
 edition = "2018"
 
 [dependencies]
-serialport = "3.2"
+serialport = { version = "~3.2", default-features = false }
 clap = "2.31"
+crossbeam-channel = "0.3"
+
