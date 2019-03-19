@@ -1,11 +1,11 @@
 extern crate serialport;
 
-use std::io;
 use std::time::Duration;
+use std::{io, thread};
 
 use serialport::prelude::*;
 
-pub fn receive_data(port_name: &str, baud_rate: &str, op: fn(&[u8]) -> ()) -> () {
+pub fn receive_data<F: FnMut(&[u8]) -> ()>(port_name: &str, baud_rate: &str, mut op: F) -> () {
   let mut settings: SerialPortSettings = Default::default();
   settings.timeout = Duration::from_millis(10);
   if let Ok(rate) = baud_rate.parse::<u32>() {
@@ -20,6 +20,7 @@ pub fn receive_data(port_name: &str, baud_rate: &str, op: fn(&[u8]) -> ()) -> ()
       let mut serial_buf: Vec<u8> = vec![0; 1000];
       println!("Receiving data on {} at {} baud:", &port_name, &baud_rate);
       loop {
+        thread::sleep(Duration::from_millis(200));
         match port.read(serial_buf.as_mut_slice()) {
           //Ok(t) => io::stdout().write_all(&serial_buf[..t]).unwrap(),
           Ok(t) => op(&serial_buf[..t]),

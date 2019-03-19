@@ -8,4 +8,5 @@ edition = "2018"
 serialport = { version = "~3.2", default-features = false }
 clap = "2.31"
 crossbeam-channel = "0.3"
+rumqtt = "0.30"
 
