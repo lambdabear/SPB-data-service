@@ -1,4 +1,5 @@
 use clap::{App, AppSettings, Arg};
+use crossbeam_channel::bounded;
 use rumqtt::QoS;
 use std::{io, io::Write, thread};
 
@@ -36,16 +37,26 @@ fn main() {
 
     let (mut mqtt_client, notifications) = setup_client(broker, port, id);
 
-    mqtt_client
-        .subscribe("hello/world", QoS::AtLeastOnce)
-        .unwrap();
+    mqtt_client.subscribe(topic, QoS::AtLeastOnce).unwrap();
 
-    let op = move |data: &[u8]| -> () {
-        send_msg(&mut mqtt_client, topic, data);
+    let (s, r) = bounded(1);
+
+    let send = move |data: Vec<u8>| -> () {
+        match s.send(data) {
+            Ok(_) => (),
+            Err(e) => eprintln!("send msg through thread error: {:?}", e),
+        }
     };
 
     thread::spawn(move || {
-        receive_data(&port_name, &baud_rate, op);
+        receive_data(&port_name, &baud_rate, send);
+    });
+
+    thread::spawn(move || loop {
+        match r.recv() {
+            Ok(msg) => send_msg(&mut mqtt_client, topic, &msg),
+            Err(_) => (),
+        }
     });
 
     for notification in notifications {
