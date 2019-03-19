@@ -1,8 +1,12 @@
-extern crate clap;
-
 use clap::{App, AppSettings, Arg};
-use rumqtt::{MqttClient, MqttOptions, QoS, ReconnectOptions};
+use rumqtt::QoS;
 use std::{io, io::Write, thread};
+
+mod serial;
+use serial::receive_data;
+
+mod mqtt;
+use mqtt::{send_msg, setup_client};
 
 fn main() {
     let matches = App::new("Smart power box serial data receiver")
@@ -27,26 +31,21 @@ fn main() {
 
     let broker = "test.mosquitto.org";
     let port = 1883;
+    let id = "spb001";
+    let topic = "hello/world";
 
-    let reconnection_options = ReconnectOptions::Always(10);
-    let mqtt_options = MqttOptions::new("test-pubsub2", broker, port)
-        .set_keep_alive(10)
-        .set_reconnect_opts(reconnection_options)
-        .set_clean_session(false);
+    let (mut mqtt_client, notifications) = setup_client(broker, port, id);
 
-    let (mut mqtt_client, notifications) = MqttClient::start(mqtt_options).unwrap();
     mqtt_client
         .subscribe("hello/world", QoS::AtLeastOnce)
         .unwrap();
 
     let op = move |data: &[u8]| -> () {
-        mqtt_client
-            .publish("hello/world", QoS::AtLeastOnce, false, data)
-            .unwrap();
+        send_msg(&mut mqtt_client, topic, data);
     };
 
     thread::spawn(move || {
-        spb_serial_data_receiver::receive_data(&port_name, &baud_rate, op);
+        receive_data(&port_name, &baud_rate, op);
     });
 
     for notification in notifications {
