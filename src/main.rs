@@ -27,45 +27,55 @@ fn main() {
         )
         .get_matches();
 
+    // set serial port arguments
     let port_name = matches.value_of("port").unwrap().to_owned();
     let baud_rate = matches.value_of("baud").unwrap().to_owned();
 
+    // setup mqtt client
     let broker = "test.mosquitto.org";
     let port = 1883;
     let id = "spb001";
     let topic = "hello/world";
-
     let (mut mqtt_client, notifications) = setup_client(broker, port, id);
-
     mqtt_client.subscribe(topic, QoS::AtLeastOnce).unwrap();
 
+    // setup channel for communication between threads
     let (s, r) = bounded(1);
 
-    let send = move |data: Vec<u8>| -> () {
-        match s.send(data) {
-            Ok(_) => (),
-            Err(e) => eprintln!("send msg through thread error: {:?}", e),
-        }
-    };
-
-    thread::spawn(move || {
+    // get serial port data, send the data through channel
+    let h1 = thread::spawn(move || {
+        let send = move |data: Vec<u8>| -> () {
+            match s.send(data) {
+                Ok(_) => (),
+                Err(e) => eprintln!("send msg through thread error: {:?}", e),
+            }
+        };
         receive_data(&port_name, &baud_rate, send);
     });
 
-    thread::spawn(move || loop {
+    // receive serial data from channel, publish the data using mqtt client
+    let h2 = thread::spawn(move || loop {
         match r.recv() {
             Ok(msg) => send_msg(&mut mqtt_client, topic, &msg),
             Err(_) => (),
         }
     });
 
-    for notification in notifications {
-        //println!("{:?}", notification);
-        match notification {
-            rumqtt::client::Notification::Publish(publish) => {
-                io::stdout().write_all(&publish.payload).unwrap()
+    // receive server messages by subscribe message topic using mqtt client
+    let h3 = thread::spawn(move || {
+        for notification in notifications {
+            //println!("{:?}", notification);
+            match notification {
+                rumqtt::client::Notification::Publish(publish) => {
+                    io::stdout().write_all(&publish.payload).unwrap()
+                }
+                _ => (),
             }
-            _ => (),
         }
+    });
+
+    let handles = vec![h1, h2, h3];
+    for h in handles {
+        h.join().unwrap();
     }
 }
