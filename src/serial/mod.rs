@@ -1,5 +1,5 @@
-use std::io;
 use std::time::Duration;
+use std::{io, thread};
 
 use serialport::prelude::*;
 
@@ -31,7 +31,10 @@ pub fn receive_data<F: Fn(Vec<u8>) -> ()>(port_name: &str, baud_rate: &str, op: 
                         };
                     }
                     Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
-                    Err(e) => eprintln!("{:?}", e),
+                    Err(e) => {
+                        eprintln!("{:?}", e);
+                        thread::sleep(Duration::from_millis(1000))
+                    }
                 }
             }
         }

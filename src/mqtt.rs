@@ -9,12 +9,14 @@ pub fn setup_client(broker: &str, port: u16, id: &str) -> (MqttClient, Receiver<
         .set_reconnect_opts(reconnection_options)
         .set_clean_session(false);
 
-    match MqttClient::start(mqtt_options) {
-        Ok((mqtt_client, notifications)) => (mqtt_client, notifications),
-        Err(e) => {
-            eprintln!("start mqtt client error: {:?}", e);
-            thread::sleep(Duration::from_secs(10));
-            setup_client(broker, port, id)
+    // if mqtt start failed, it will restart after 10 seconds
+    loop {
+        match MqttClient::start(mqtt_options.clone()) {
+            Ok((mqtt_client, notifications)) => return (mqtt_client, notifications),
+            Err(e) => {
+                eprintln!("start mqtt client error: {:?}", e);
+                thread::sleep(Duration::from_secs(10));
+            }
         }
     }
 }
