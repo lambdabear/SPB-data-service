@@ -2,9 +2,11 @@ use clap::{App, AppSettings, Arg};
 use crossbeam_channel::bounded;
 use rumqtt::QoS;
 
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
 use std::{io, io::Write, thread};
 
-use spb_serial_data_parser::{parse, to_json};
+use spb_serial_data_parser::{parse, Battery, DcOut, SpbState, SwIn, SwOut, Ups};
 use spb_serial_data_receiver::{receive_data, send_msg, setup_client};
 
 fn main() {
@@ -37,6 +39,20 @@ fn main() {
     let (mut mqtt_client, notifications) = setup_client(broker, port, id);
     mqtt_client.subscribe(topic, QoS::AtLeastOnce).unwrap();
 
+    // setup data store
+    let data_in = Arc::new(Mutex::new(SwIn::new(false, false, false, false)));
+    let data_no = Arc::new(Mutex::new(SwOut::new(
+        false, false, false, false, false, false,
+    )));
+    let data_ups = Arc::new(Mutex::new(Ups::new(0.0, 0.0, 0.0, false)));
+    let data_bt = Arc::new(Mutex::new(Battery::new(0.0, 0.0, 0)));
+    let data_dc = Arc::new(Mutex::new(DcOut::new(0.0, 0.0, 0.0)));
+    let in1 = data_in.clone();
+    let no1 = data_no.clone();
+    let ups1 = data_ups.clone();
+    let bt1 = data_bt.clone();
+    let dc1 = data_dc.clone();
+
     // setup channel for communication between threads
     let (s, r) = bounded(1);
 
@@ -56,10 +72,81 @@ fn main() {
         match r.recv() {
             Ok(msg) => {
                 match parse(&msg) {
-                    Ok(s) => match to_json(s) {
-                        Ok(m) => send_msg(&mut mqtt_client, topic, &m.into_bytes()),
-                        Err(e) => eprintln!("{:?}", e),
-                    },
+                    Ok(s) => {
+                        // if the data received right now is diffrent from previous data, then store and send the data
+                        match s {
+                            SpbState::SwIn(swin) => match in1.lock() {
+                                Ok(mut s) => {
+                                    if *s != swin {
+                                        match serde_json::to_string(&swin) {
+                                            Ok(m) => {
+                                                send_msg(&mut mqtt_client, topic, &m.into_bytes())
+                                            }
+                                            Err(e) => eprintln!("{:?}", e),
+                                        }
+                                        *s = swin
+                                    }
+                                }
+                                Err(e) => eprintln!("{}", e),
+                            },
+                            SpbState::SwOut(swout) => match no1.lock() {
+                                Ok(mut s) => {
+                                    if *s != swout {
+                                        match serde_json::to_string(&swout) {
+                                            Ok(m) => {
+                                                send_msg(&mut mqtt_client, topic, &m.into_bytes())
+                                            }
+                                            Err(e) => eprintln!("{:?}", e),
+                                        }
+                                        *s = swout
+                                    }
+                                }
+                                Err(e) => eprintln!("{}", e),
+                            },
+                            SpbState::Ups(ups) => match ups1.lock() {
+                                Ok(mut s) => {
+                                    if *s != ups {
+                                        match serde_json::to_string(&ups) {
+                                            Ok(m) => {
+                                                send_msg(&mut mqtt_client, topic, &m.into_bytes())
+                                            }
+                                            Err(e) => eprintln!("{:?}", e),
+                                        }
+                                        *s = ups
+                                    }
+                                }
+                                Err(e) => eprintln!("{}", e),
+                            },
+                            SpbState::Bt(bt) => match bt1.lock() {
+                                Ok(mut s) => {
+                                    if *s != bt {
+                                        match serde_json::to_string(&bt) {
+                                            Ok(m) => {
+                                                send_msg(&mut mqtt_client, topic, &m.into_bytes())
+                                            }
+                                            Err(e) => eprintln!("{:?}", e),
+                                        }
+                                        *s = bt
+                                    }
+                                }
+                                Err(e) => eprintln!("{}", e),
+                            },
+                            SpbState::Dc(dcout) => match dc1.lock() {
+                                Ok(mut s) => {
+                                    if *s != dcout {
+                                        match serde_json::to_string(&dcout) {
+                                            Ok(m) => {
+                                                send_msg(&mut mqtt_client, topic, &m.into_bytes())
+                                            }
+                                            Err(e) => eprintln!("{:?}", e),
+                                        }
+                                        *s = dcout
+                                    }
+                                }
+                                Err(e) => eprintln!("{}", e),
+                            },
+                        }
+                    }
                     Err(e) => eprintln!("{:?}", e),
                 };
             }
@@ -81,7 +168,19 @@ fn main() {
         }
     });
 
-    let handles = vec![h1, h2, h3];
+    // send spb state per 60 seconds
+    let h4 = thread::spawn(move || loop {
+        thread::sleep(Duration::from_secs(60));
+        print!("\n**************\n{:?}\n", std::time::SystemTime::now());
+        println!("{:?}", *data_in);
+        println!("{:?}", *data_no);
+        println!("{:?}", *data_ups);
+        println!("{:?}", *data_bt);
+        println!("{:?}", *data_dc);
+        print!("\n**************\n");
+    });
+
+    let handles = vec![h1, h2, h3, h4];
     for h in handles {
         h.join().unwrap();
     }

@@ -9,6 +9,7 @@ serialport = { version = "~3.2", default-features = false }
 clap = "2.31"
 crossbeam-channel = "0.3"
 rumqtt = "0.30"
+serde_json = "1.0"
 
 spb-serial-data-parser = { path = "../spb-serial-data-parser"}
 
