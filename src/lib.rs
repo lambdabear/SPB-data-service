@@ -1,10 +1,9 @@
 use std::time::Duration;
 use std::{io, thread};
 
+use rumqtt::{client::Notification, MqttClient, MqttOptions, QoS, Receiver, ReconnectOptions};
 use serialport::prelude::*;
-
-mod parser;
-use parser::get_msg;
+use spb_serial_data_parser::extract_msg;
 
 // receive data from serial port, use op closure to process data
 pub fn receive_data<F: Fn(Vec<u8>) -> ()>(port_name: &str, baud_rate: &str, op: F) -> () {
@@ -25,7 +24,7 @@ pub fn receive_data<F: Fn(Vec<u8>) -> ()>(port_name: &str, baud_rate: &str, op: 
             loop {
                 match port.read(serial_buf.as_mut_slice()) {
                     Ok(t) => {
-                        match get_msg(&serial_buf[..t], &mut msg_cache) {
+                        match extract_msg(&serial_buf[..t], &mut msg_cache) {
                             Some(msg) => op(msg.to_owned()),
                             None => (),
                         };
@@ -42,5 +41,31 @@ pub fn receive_data<F: Fn(Vec<u8>) -> ()>(port_name: &str, baud_rate: &str, op: 
             eprintln!("Failed to open \"{}\". Error: {}", port_name, e);
             std::process::exit(1);
         }
+    }
+}
+
+pub fn setup_client(broker: &str, port: u16, id: &str) -> (MqttClient, Receiver<Notification>) {
+    let reconnection_options = ReconnectOptions::Always(10);
+    let mqtt_options = MqttOptions::new(id, broker, port)
+        .set_keep_alive(10)
+        .set_reconnect_opts(reconnection_options)
+        .set_clean_session(false);
+
+    // if mqtt start failed, it will restart after 10 seconds
+    loop {
+        match MqttClient::start(mqtt_options.clone()) {
+            Ok((mqtt_client, notifications)) => return (mqtt_client, notifications),
+            Err(e) => {
+                eprintln!("start mqtt client error: {:?}", e);
+                thread::sleep(Duration::from_secs(10));
+            }
+        }
+    }
+}
+
+pub fn send_msg(client: &mut MqttClient, topic: &str, data: &[u8]) {
+    match client.publish(topic, QoS::AtLeastOnce, false, data) {
+        Ok(_) => (),
+        Err(e) => eprintln!("send message error: {:?}", e),
     }
 }

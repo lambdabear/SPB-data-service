@@ -10,3 +10,5 @@ clap = "2.31"
 crossbeam-channel = "0.3"
 rumqtt = "0.30"
 
+spb-serial-data-parser = { path = "../spb-serial-data-parser"}
+

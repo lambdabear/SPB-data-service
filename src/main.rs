@@ -1,13 +1,11 @@
 use clap::{App, AppSettings, Arg};
 use crossbeam_channel::bounded;
 use rumqtt::QoS;
+
 use std::{io, io::Write, thread};
 
-mod serial;
-use serial::receive_data;
-
-mod mqtt;
-use mqtt::{send_msg, setup_client};
+use spb_serial_data_parser::{parse, to_json};
+use spb_serial_data_receiver::{receive_data, send_msg, setup_client};
 
 fn main() {
     let matches = App::new("Smart power box serial data receiver")
@@ -56,8 +54,16 @@ fn main() {
     // receive serial data from channel, publish the data using mqtt client
     let h2 = thread::spawn(move || loop {
         match r.recv() {
-            Ok(msg) => send_msg(&mut mqtt_client, topic, &msg),
-            Err(_) => (),
+            Ok(msg) => {
+                match parse(&msg) {
+                    Ok(s) => match to_json(s) {
+                        Ok(m) => send_msg(&mut mqtt_client, topic, &m.into_bytes()),
+                        Err(e) => eprintln!("{:?}", e),
+                    },
+                    Err(e) => eprintln!("{:?}", e),
+                };
+            }
+            Err(e) => eprintln!("{:?}", e),
         }
     });
 
@@ -67,7 +73,8 @@ fn main() {
             //println!("{:?}", notification);
             match notification {
                 rumqtt::client::Notification::Publish(publish) => {
-                    io::stdout().write_all(&publish.payload).unwrap()
+                    io::stdout().write_all(&publish.payload).unwrap();
+                    print!("\n")
                 }
                 _ => (),
             }
