@@ -829,15 +829,7 @@ version = "0.6.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "spb-serial-data-parser"
-version = "0.1.0"
-dependencies = [
- "serde 1.0.89 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_json 1.0.39 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "spb-serial-data-receiver"
+name = "spb-data-service"
 version = "0.1.0"
 dependencies = [
  "clap 2.32.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -846,6 +838,14 @@ dependencies = [
  "serde_json 1.0.39 (registry+https://github.com/rust-lang/crates.io-index)",
  "serialport 3.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "spb-serial-data-parser 0.1.0",
+]
+
+[[package]]
+name = "spb-serial-data-parser"
+version = "0.1.0"
+dependencies = [
+ "serde 1.0.89 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.39 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

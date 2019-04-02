@@ -1,7 +1,10 @@
 use std::time::Duration;
 use std::{io, thread};
 
-use rumqtt::{client::Notification, MqttClient, MqttOptions, QoS, Receiver, ReconnectOptions};
+use rumqtt::{
+    client::Notification, error::ConnectError, MqttClient, MqttOptions, QoS, Receiver,
+    ReconnectOptions,
+};
 use serialport::prelude::*;
 use spb_serial_data_parser::extract_msg;
 
@@ -44,7 +47,25 @@ pub fn receive_data<F: Fn(Vec<u8>) -> ()>(port_name: &str, baud_rate: &str, op: 
     }
 }
 
-pub fn setup_client(broker: &str, port: u16, id: &str) -> (MqttClient, Receiver<Notification>) {
+pub fn setup_client<S: Into<String>, T: Into<String>>(
+    broker: S,
+    port: u16,
+    id: T,
+) -> Result<(MqttClient, Receiver<Notification>), ConnectError> {
+    let reconnection_options = ReconnectOptions::Always(10);
+    let mqtt_options = MqttOptions::new(id, broker, port)
+        .set_keep_alive(10)
+        .set_reconnect_opts(reconnection_options)
+        .set_clean_session(false);
+
+    MqttClient::start(mqtt_options.clone())
+}
+
+pub fn setup_client_loop<S: Into<String>, T: Into<String>>(
+    broker: S,
+    port: u16,
+    id: T,
+) -> (MqttClient, Receiver<Notification>) {
     let reconnection_options = ReconnectOptions::Always(10);
     let mqtt_options = MqttOptions::new(id, broker, port)
         .set_keep_alive(10)

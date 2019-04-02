@@ -6,8 +6,8 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::{io, io::Write, thread};
 
+use spb_data_service::{receive_data, send_msg, setup_client_loop};
 use spb_serial_data_parser::{parse, Battery, DcOut, SpbState, SwIn, SwOut, Ups};
-use spb_serial_data_receiver::{receive_data, send_msg, setup_client};
 
 fn main() {
     let matches = App::new("Smart power box serial data receiver")
@@ -36,8 +36,8 @@ fn main() {
     let port = 1883;
     let id = "spb001";
     let topic = "hello/world";
-    let (mut mqtt_client, notifications) = setup_client(broker, port, id);
-    mqtt_client.subscribe(topic, QoS::AtLeastOnce).unwrap();
+    let (mut mqtt_client, _notifications) = setup_client_loop(broker, port, id);
+    // mqtt_client.subscribe(topic, QoS::AtLeastOnce).unwrap();
 
     // setup data store
     let data_in = Arc::new(Mutex::new(SwIn::new(false, false, false, false)));
@@ -155,18 +155,18 @@ fn main() {
     });
 
     // receive server messages by subscribe message topic using mqtt client
-    let h3 = thread::spawn(move || {
-        for notification in notifications {
-            //println!("{:?}", notification);
-            match notification {
-                rumqtt::client::Notification::Publish(publish) => {
-                    io::stdout().write_all(&publish.payload).unwrap();
-                    print!("\n")
-                }
-                _ => (),
-            }
-        }
-    });
+    // let h3 = thread::spawn(move || {
+    //     for notification in notifications {
+    //         //println!("{:?}", notification);
+    //         match notification {
+    //             rumqtt::client::Notification::Publish(publish) => {
+    //                 io::stdout().write_all(&publish.payload).unwrap();
+    //                 print!("\n")
+    //             }
+    //             _ => (),
+    //         }
+    //     }
+    // });
 
     // send spb state per 60 seconds
     let h4 = thread::spawn(move || loop {
@@ -180,7 +180,7 @@ fn main() {
         print!("\n**************\n");
     });
 
-    let handles = vec![h1, h2, h3, h4];
+    let handles = vec![h1, h2, h4];
     for h in handles {
         h.join().unwrap();
     }

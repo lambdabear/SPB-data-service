@@ -1,5 +1,5 @@
 [package]
-name = "spb-serial-data-receiver"
+name = "spb-data-service"
 version = "0.1.0"
 authors = ["ZhangYi <zhangyi@goldensecure.com>"]
 edition = "2018"
