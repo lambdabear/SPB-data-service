@@ -1,10 +1,9 @@
 use clap::{App, AppSettings, Arg};
 use crossbeam_channel::bounded;
-use rumqtt::QoS;
 
 use std::sync::{Arc, Mutex};
+use std::thread;
 use std::time::Duration;
-use std::{io, io::Write, thread};
 
 use spb_data_service::{receive_data, send_msg, setup_client_loop};
 use spb_serial_data_parser::{parse, Battery, DcOut, SpbState, SwIn, SwOut, Ups};
