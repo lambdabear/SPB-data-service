@@ -47,10 +47,10 @@ pub fn receive_data<F: Fn(Vec<u8>) -> ()>(port_name: &str, baud_rate: &str, op: 
     }
 }
 
-pub fn setup_client<S: Into<String>, T: Into<String>>(
-    broker: S,
+pub fn setup_client(
+    broker: String,
     port: u16,
-    id: T,
+    id: String,
 ) -> Result<(MqttClient, Receiver<Notification>), ConnectError> {
     let reconnection_options = ReconnectOptions::Always(10);
     let mqtt_options = MqttOptions::new(id, broker, port)
