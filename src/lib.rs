@@ -85,7 +85,7 @@ pub fn setup_client_loop<S: Into<String>, T: Into<String>>(
 }
 
 pub fn send_msg(client: &mut MqttClient, topic: &str, data: &[u8]) {
-    match client.publish(topic, QoS::AtLeastOnce, false, data) {
+    match client.publish(topic, QoS::AtMostOnce, false, data) {
         Ok(_) => (),
         Err(e) => eprintln!("send message error: {:?}", e),
     }
