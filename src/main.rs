@@ -28,7 +28,12 @@ fn main() {
 
     // set serial port arguments
     let port_name = matches.value_of("port").unwrap().to_owned();
-    let baud_rate = matches.value_of("baud").unwrap().to_owned();
+    let baud_rate = matches
+        .value_of("baud")
+        .unwrap()
+        .to_owned()
+        .parse::<u32>()
+        .unwrap();
 
     // setup mqtt client
     let broker = "test.mosquitto.org";
@@ -63,7 +68,7 @@ fn main() {
                 Err(e) => eprintln!("send msg through thread error: {:?}", e),
             }
         };
-        receive_data(&port_name, &baud_rate, send);
+        receive_data(&port_name, baud_rate, send);
     });
 
     // receive serial data from channel, publish the data using mqtt client

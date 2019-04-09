@@ -9,15 +9,10 @@ use serialport::prelude::*;
 use spb_serial_data_parser::extract_msg;
 
 // receive data from serial port, use op closure to process data
-pub fn receive_data<F: Fn(Vec<u8>) -> ()>(port_name: &str, baud_rate: &str, op: F) -> () {
+pub fn receive_data<F: Fn(Vec<u8>) -> ()>(port_name: &str, baud_rate: u32, op: F) -> () {
     let mut settings: SerialPortSettings = Default::default();
     settings.timeout = Duration::from_millis(10);
-    if let Ok(rate) = baud_rate.parse::<u32>() {
-        settings.baud_rate = rate;
-    } else {
-        eprintln!("Error: Invalid baud rate '{}' specified", baud_rate);
-        std::process::exit(1);
-    }
+    settings.baud_rate = baud_rate;
 
     match serialport::open_with_settings(&port_name, &settings) {
         Ok(mut port) => {
