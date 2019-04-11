@@ -33,6 +33,7 @@ pub fn receive_data<F: Fn(Vec<u8>) -> ()>(port_name: &str, baud_rate: u32, op: F
                         thread::sleep(Duration::from_millis(1000))
                     }
                 }
+                thread::sleep(Duration::from_millis(100));
             }
         }
         Err(e) => {
