@@ -49,7 +49,7 @@ fn main() {
         false, false, false, false, false, false,
     )));
     let data_ups = Arc::new(Mutex::new(Ups::new(0.0, 0.0, 0.0, false)));
-    let data_bt = Arc::new(Mutex::new(Battery::new(0.0, 0.0, 0)));
+    let data_bt = Arc::new(Mutex::new(Battery::new(0.0, 0.0, 0.0)));
     let data_dc = Arc::new(Mutex::new(DcOut::new(0.0, 0.0, 0.0)));
     let in1 = data_in.clone();
     let no1 = data_no.clone();
