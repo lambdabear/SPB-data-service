@@ -8,7 +8,7 @@ edition = "2018"
 serialport = { version = "~3.2", default-features = false }
 clap = "2.31"
 crossbeam-channel = "0.3"
-rumqtt = { path = "../rumqtt" }
+rumqtt = "0.31"
 serde_json = "1.0"
 
 spb-serial-data-parser = { path = "../spb-serial-data-parser" }
